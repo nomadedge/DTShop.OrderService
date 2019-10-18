@@ -66,7 +66,7 @@ namespace DTShop.OrderService.Data.Repositories
             return order;
         }
 
-        public async Task<Order> AddItemToOrder(int orderId, int itemId, int amount, string userName)
+        public async Task<Order> AddItemToOrder(int orderId, int itemId, int amount, string username)
         {
             if (amount < 1 || amount > 99)
             {
@@ -89,7 +89,7 @@ namespace DTShop.OrderService.Data.Repositories
             {
                 var newOrder = new Order
                 {
-                    UserName = userName,
+                    Username = username,
                     Status = OrderStatus.Collecting,
                     OrderItems = new List<OrderItem> { new OrderItem
                     {
@@ -111,9 +111,9 @@ namespace DTShop.OrderService.Data.Repositories
             {
                 var order = GetOrderById(orderId);
 
-                if (order.UserName != userName)
+                if (order.Username != username)
                 {
-                    throw new ArgumentException("UserName for existing order should be the same.");
+                    throw new ArgumentException("Username for existing order should be the same.");
                 }
 
                 var existingOrderItem = order.OrderItems

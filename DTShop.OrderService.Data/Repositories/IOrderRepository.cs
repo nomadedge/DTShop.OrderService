@@ -7,7 +7,7 @@ namespace DTShop.OrderService.Data.Repositories
 {
     public interface IOrderRepository
     {
-        Task<Order> AddItemToOrder(int orderId, int warehouseItemId, int amount, string userName);
+        Task<Order> AddItemToOrder(int orderId, int warehouseItemId, int amount, string username);
         IEnumerable<Order> GetAllOrders();
         Order GetOrderById(int orderId);
         Task<bool> SaveChangesAsync();

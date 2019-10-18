@@ -8,7 +8,7 @@ namespace DTShop.OrderService.Data.Entities
     {
         public int OrderId { get; set; }
         [Required]
-        public string UserName { get; set; }
+        public string Username { get; set; }
         public int? PaymentId { get; set; }
         public OrderStatus Status { get; set; }
         public ICollection<OrderItem> OrderItems { get; set; }
