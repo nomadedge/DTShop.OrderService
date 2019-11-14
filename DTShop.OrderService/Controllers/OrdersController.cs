@@ -34,20 +34,13 @@ namespace DTShop.OrderService.Controllers
         [HttpGet]
         public ActionResult<List<OrderModel>> GetAllOrders()
         {
-            try
-            {
-                var orders = _orderRepository.GetAllOrders().ToList();
+            var orders = _orderRepository.GetAllOrders().ToList();
 
+            if (orders.Any())
+            {
                 return _mapper.Map<List<OrderModel>>(orders);
             }
-            catch (InvalidOperationException)
-            {
-                return StatusCode(StatusCodes.Status204NoContent);
-            }
-            catch (Exception e)
-            {
-                return StatusCode(StatusCodes.Status500InternalServerError, e.Message);
-            }
+            return NoContent();
         }
 
         [HttpGet("{orderId}")]
@@ -62,10 +55,6 @@ namespace DTShop.OrderService.Controllers
             {
                 return StatusCode(StatusCodes.Status404NotFound, e.Message);
             }
-            catch (Exception e)
-            {
-                return StatusCode(StatusCodes.Status500InternalServerError, e.Message);
-            }
         }
 
         [HttpPut("{orderId}/status/{status}")]
@@ -73,20 +62,11 @@ namespace DTShop.OrderService.Controllers
         {
             try
             {
-                var order = _orderRepository.SetOrderStatus(orderId, status);
-                var location = _linkGenerator.GetPathByAction(
-                    "Get",
-                    "Orders",
-                    new { orderId = order.OrderId });
-
-                if (!await _orderRepository.SaveChangesAsync())
-                {
-                    return BadRequest("Database failure");
-                }
+                var order = await _orderRepository.SetOrderStatus(orderId, status);
 
                 return _mapper.Map<OrderModel>(order);
             }
-            catch (Exception e)
+            catch (InvalidOperationException e)
             {
                 return BadRequest(e.Message);
             }

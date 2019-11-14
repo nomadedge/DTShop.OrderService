@@ -11,6 +11,6 @@ namespace DTShop.OrderService.Data.Repositories
         IEnumerable<Order> GetAllOrders();
         Order GetOrderById(int orderId);
         Task<bool> SaveChangesAsync();
-        Order SetOrderStatus(int orderId, OrderStatus newOrderStatus);
+        Task<Order> SetOrderStatus(int orderId, OrderStatus newOrderStatus);
     }
 }

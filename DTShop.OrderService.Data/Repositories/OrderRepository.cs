@@ -23,10 +23,6 @@ namespace DTShop.OrderService.Data.Repositories
             var orders = _orderDbContext.Orders
                 .Include(o => o.OrderItems)
                     .ThenInclude(oi => oi.Item);
-            if (orders.Count() == 0)
-            {
-                throw new InvalidOperationException("No orders in database.");
-            }
             return orders;
         }
 
@@ -43,104 +39,120 @@ namespace DTShop.OrderService.Data.Repositories
             return order;
         }
 
-        public Order SetOrderStatus(int orderId, OrderStatus newOrderStatus)
+        public async Task<Order> SetOrderStatus(int orderId, OrderStatus newOrderStatus)
         {
-            var order = GetOrderById(orderId);
+            var order = new Order();
 
-            if (!OrderStateMachine.IsTransitionAllowed(order.Status, newOrderStatus))
+            using (var transaction = _orderDbContext.Database.BeginTransaction())
             {
-                throw new InvalidOperationException("Transition is not allowed by state machine.");
-            }
+                order = GetOrderById(orderId);
 
-            order.Status = newOrderStatus;
-            if (newOrderStatus == OrderStatus.Failed || newOrderStatus == OrderStatus.Cancelled)
-            {
-                foreach (var orderItem in order.OrderItems)
+                if (!OrderStateMachine.IsTransitionAllowed(order.Status, newOrderStatus))
                 {
-                    var warehouseItem = _orderDbContext.WarehouseItems
-                        .FirstOrDefault(wi => wi.Item == orderItem.Item);
-                    warehouseItem.Amount += orderItem.Amount;
+                    throw new InvalidOperationException("Transition is not allowed by state machine.");
                 }
-            }
 
+                order.Status = newOrderStatus;
+                if (newOrderStatus == OrderStatus.Failed || newOrderStatus == OrderStatus.Cancelled)
+                {
+                    foreach (var orderItem in order.OrderItems)
+                    {
+                        var warehouseItem = _orderDbContext.WarehouseItems
+                            .FirstOrDefault(wi => wi.Item == orderItem.Item);
+                        warehouseItem.Amount += orderItem.Amount;
+                    }
+                }
+
+                if (!await SaveChangesAsync())
+                {
+                    throw new DbUpdateException("Database failure");
+                }
+
+                transaction.Commit();
+            }
+            
             return order;
         }
 
         public async Task<Order> AddItemToOrder(int orderId, int itemId, int amount, string username)
         {
-            if (amount < 1 || amount > 99)
-            {
-                throw new ArgumentOutOfRangeException("Amount should be from 1 to 99");
-            }
+            var order = new Order();
 
-            var warehouseItem = _orderDbContext.WarehouseItems
-                .Include(wi => wi.Item)
-                .FirstOrDefault(wi => wi.Item.ItemId == itemId);
-            if (warehouseItem == null)
+            using (var transaction = _orderDbContext.Database.BeginTransaction())
             {
-                throw new ArgumentException("No warehouse item with such Id.");
-            }
-            if (warehouseItem.Amount < amount)
-            {
-                throw new ArgumentException("Not enough items in warehouse");
-            }
-
-            if (orderId == 0)
-            {
-                var newOrder = new Order
+                if (amount < 1 || amount > 99)
                 {
-                    Username = username,
-                    Status = OrderStatus.Collecting,
-                    OrderItems = new List<OrderItem> { new OrderItem
+                    throw new ArgumentOutOfRangeException("Amount should be from 1 to 99");
+                }
+
+                var warehouseItem = _orderDbContext.WarehouseItems
+                    .Include(wi => wi.Item)
+                    .FirstOrDefault(wi => wi.Item.ItemId == itemId);
+                if (warehouseItem == null)
+                {
+                    throw new ArgumentException("No warehouse item with such Id.");
+                }
+                if (warehouseItem.Amount < amount)
+                {
+                    throw new ArgumentException("Not enough items in warehouse");
+                }
+
+                if (orderId == 0)
+                {
+                    order = new Order
+                    {
+                        Username = username,
+                        Status = OrderStatus.Collecting,
+                        OrderItems = new List<OrderItem> { new OrderItem
                     {
                         Item = warehouseItem.Item,
                         Amount = amount
                     } }
-                };
-                _orderDbContext.Add(newOrder);
-                warehouseItem.Amount -= amount;
+                    };
+                    _orderDbContext.Add(order);
+                    warehouseItem.Amount -= amount;
 
-                if (!await SaveChangesAsync())
-                {
-                    throw new DbUpdateException("Database failure");
-                }
-
-                return newOrder;
-            }
-            else
-            {
-                var order = GetOrderById(orderId);
-
-                if (order.Username != username)
-                {
-                    throw new ArgumentException("Username for existing order should be the same.");
-                }
-
-                var existingOrderItem = order.OrderItems
-                    .FirstOrDefault(oi => oi.Item.ItemId == itemId);
-
-                if (existingOrderItem == null)
-                {
-                    order.OrderItems.Add(new OrderItem
+                    if (!await SaveChangesAsync())
                     {
-                        Item = warehouseItem.Item,
-                        Amount = amount
-                    });
+                        throw new DbUpdateException("Database failure");
+                    }
                 }
                 else
                 {
-                    existingOrderItem.Amount += amount;
+                    order = GetOrderById(orderId);
+
+                    if (order.Username != username)
+                    {
+                        throw new ArgumentException("Username for existing order should be the same.");
+                    }
+
+                    var existingOrderItem = order.OrderItems
+                        .FirstOrDefault(oi => oi.Item.ItemId == itemId);
+
+                    if (existingOrderItem == null)
+                    {
+                        order.OrderItems.Add(new OrderItem
+                        {
+                            Item = warehouseItem.Item,
+                            Amount = amount
+                        });
+                    }
+                    else
+                    {
+                        existingOrderItem.Amount += amount;
+                    }
+
+                    warehouseItem.Amount -= amount;
+
+                    if (!await SaveChangesAsync())
+                    {
+                        throw new DbUpdateException("Database failure");
+                    }
                 }
 
-                warehouseItem.Amount -= amount;
-
-                if (!await SaveChangesAsync())
-                {
-                    throw new DbUpdateException("Database failure");
-                }
-
-                return order;
+                transaction.Commit();
             }
+            return order;
         }
 
         public async Task<bool> SaveChangesAsync()
