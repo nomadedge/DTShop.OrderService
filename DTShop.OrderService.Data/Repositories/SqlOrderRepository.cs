@@ -121,6 +121,11 @@ namespace DTShop.OrderService.Data.Repositories
                 {
                     order = GetOrderById(orderId);
 
+                    if (order.Status != OrderStatus.Collecting)
+                    {
+                        throw new ArgumentException("Order status should be \"Collecting\".");
+                    }
+
                     if (order.Username != username)
                     {
                         throw new ArgumentException("Username for existing order should be the same.");
