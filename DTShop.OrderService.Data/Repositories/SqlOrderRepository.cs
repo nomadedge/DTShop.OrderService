@@ -45,30 +45,38 @@ namespace DTShop.OrderService.Data.Repositories
 
             using (var transaction = _orderDbContext.Database.BeginTransaction())
             {
-                order = GetOrderById(orderId);
-
-                if (!OrderStateMachine.IsTransitionAllowed(order.Status, newOrderStatus))
+                try
                 {
-                    throw new InvalidOperationException("Transition is not allowed by state machine.");
-                }
+                    order = GetOrderById(orderId);
 
-                order.Status = newOrderStatus;
-                if (newOrderStatus == OrderStatus.Failed || newOrderStatus == OrderStatus.Cancelled)
-                {
-                    foreach (var orderItem in order.OrderItems)
+                    if (!OrderStateMachine.IsTransitionAllowed(order.Status, newOrderStatus))
                     {
-                        var warehouseItem = _orderDbContext.WarehouseItems
-                            .FirstOrDefault(wi => wi.Item == orderItem.Item);
-                        warehouseItem.Amount += orderItem.Amount;
+                        throw new InvalidOperationException("Transition is not allowed by state machine.");
                     }
-                }
 
-                if (!await SaveChangesAsync())
+                    order.Status = newOrderStatus;
+                    if (newOrderStatus == OrderStatus.Failed || newOrderStatus == OrderStatus.Cancelled)
+                    {
+                        foreach (var orderItem in order.OrderItems)
+                        {
+                            var warehouseItem = _orderDbContext.WarehouseItems
+                                .FirstOrDefault(wi => wi.Item == orderItem.Item);
+                            warehouseItem.Amount += orderItem.Amount;
+                        }
+                    }
+
+                    if (!await SaveChangesAsync())
+                    {
+                        throw new DbUpdateException("Database failure");
+                    }
+
+                    transaction.Commit();
+                }
+                catch (Exception e)
                 {
-                    throw new DbUpdateException("Database failure");
+                    transaction.Rollback();
+                    throw e;
                 }
-
-                transaction.Commit();
             }
 
             return order;
@@ -80,83 +88,92 @@ namespace DTShop.OrderService.Data.Repositories
 
             using (var transaction = _orderDbContext.Database.BeginTransaction())
             {
-                if (amount < 1 || amount > 99)
+                try
                 {
-                    throw new ArgumentOutOfRangeException("Amount should be from 1 to 99");
-                }
-
-                var warehouseItem = _orderDbContext.WarehouseItems
-                    .Include(wi => wi.Item)
-                    .FirstOrDefault(wi => wi.Item.ItemId == itemId);
-                if (warehouseItem == null)
-                {
-                    throw new ArgumentException("No warehouse item with such Id.");
-                }
-                if (warehouseItem.Amount < amount)
-                {
-                    throw new ArgumentException("Not enough items in warehouse");
-                }
-
-                if (orderId == 0)
-                {
-                    order = new Order
+                    if (amount < 1 || amount > 99)
                     {
-                        Username = username,
-                        Status = OrderStatus.Collecting,
-                        OrderItems = new List<OrderItem> { new OrderItem
+                        throw new ArgumentOutOfRangeException("Amount should be from 1 to 99");
+                    }
+
+                    var warehouseItem = _orderDbContext.WarehouseItems
+                        .Include(wi => wi.Item)
+                        .FirstOrDefault(wi => wi.Item.ItemId == itemId);
+                    if (warehouseItem == null)
+                    {
+                        throw new ArgumentException("No warehouse item with such Id.");
+                    }
+                    if (warehouseItem.Amount < amount)
+                    {
+                        throw new ArgumentException("Not enough items in warehouse");
+                    }
+
+                    if (orderId == 0)
+                    {
+                        order = new Order
+                        {
+                            Username = username,
+                            Status = OrderStatus.Collecting,
+                            OrderItems = new List<OrderItem> { new OrderItem
                     {
                         Item = warehouseItem.Item,
                         Amount = amount
                     } }
-                    };
-                    _orderDbContext.Add(order);
-                    warehouseItem.Amount -= amount;
+                        };
+                        _orderDbContext.Add(order);
+                        warehouseItem.Amount -= amount;
 
-                    if (!await SaveChangesAsync())
-                    {
-                        throw new DbUpdateException("Database failure");
-                    }
-                }
-                else
-                {
-                    order = GetOrderById(orderId);
-
-                    if (order.Status != OrderStatus.Collecting)
-                    {
-                        throw new ArgumentException("Order status should be \"Collecting\".");
-                    }
-
-                    if (order.Username != username)
-                    {
-                        throw new ArgumentException("Username for existing order should be the same.");
-                    }
-
-                    var existingOrderItem = order.OrderItems
-                        .FirstOrDefault(oi => oi.Item.ItemId == itemId);
-
-                    if (existingOrderItem == null)
-                    {
-                        order.OrderItems.Add(new OrderItem
+                        if (!await SaveChangesAsync())
                         {
-                            Item = warehouseItem.Item,
-                            Amount = amount
-                        });
+                            throw new DbUpdateException("Database failure");
+                        }
                     }
                     else
                     {
-                        existingOrderItem.Amount += amount;
+                        order = GetOrderById(orderId);
+
+                        if (order.Status != OrderStatus.Collecting)
+                        {
+                            throw new ArgumentException("Order status should be \"Collecting\".");
+                        }
+
+                        if (order.Username != username)
+                        {
+                            throw new ArgumentException("Username for existing order should be the same.");
+                        }
+
+                        var existingOrderItem = order.OrderItems
+                            .FirstOrDefault(oi => oi.Item.ItemId == itemId);
+
+                        if (existingOrderItem == null)
+                        {
+                            order.OrderItems.Add(new OrderItem
+                            {
+                                Item = warehouseItem.Item,
+                                Amount = amount
+                            });
+                        }
+                        else
+                        {
+                            existingOrderItem.Amount += amount;
+                        }
+
+                        warehouseItem.Amount -= amount;
+
+                        if (!await SaveChangesAsync())
+                        {
+                            throw new DbUpdateException("Database failure");
+                        }
                     }
 
-                    warehouseItem.Amount -= amount;
-
-                    if (!await SaveChangesAsync())
-                    {
-                        throw new DbUpdateException("Database failure");
-                    }
+                    transaction.Commit();
                 }
-
-                transaction.Commit();
+                catch (Exception e)
+                {
+                    transaction.Rollback();
+                    throw e;
+                }
             }
+
             return order;
         }
 
