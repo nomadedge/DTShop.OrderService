@@ -6,6 +6,7 @@ using DTShop.OrderService.Data.Repositories;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -20,20 +21,25 @@ namespace DTShop.OrderService.Controllers
         private readonly IOrderRepository _orderRepository;
         private readonly IMapper _mapper;
         private readonly LinkGenerator _linkGenerator;
+        private readonly ILogger<OrdersController> _logger;
 
         public OrdersController(
             IOrderRepository orderRepository,
             IMapper mapper,
-            LinkGenerator linkGenerator)
+            LinkGenerator linkGenerator,
+            ILogger<OrdersController> logger)
         {
             _orderRepository = orderRepository;
             _mapper = mapper;
             _linkGenerator = linkGenerator;
+            _logger = logger;
         }
 
         [HttpGet]
         public ActionResult<List<OrderModel>> GetAllOrders()
         {
+            _logger.LogInformation("Getting all orders");
+
             var orders = _orderRepository.GetAllOrders().ToList();
 
             if (orders.Any())
@@ -46,6 +52,8 @@ namespace DTShop.OrderService.Controllers
         [HttpGet("{orderId}")]
         public ActionResult<OrderModel> GetOrderById(int orderId)
         {
+            _logger.LogInformation("Getting order with id {OrderId}", orderId);
+
             try
             {
                 var order = _orderRepository.GetOrderById(orderId);
@@ -60,14 +68,23 @@ namespace DTShop.OrderService.Controllers
         [HttpPut("{orderId}/status/{status}")]
         public async Task<ActionResult<OrderModel>> ChangeOrderStatus(int orderId, OrderStatus status)
         {
+            _logger.LogInformation("Start to setting order with OrderId {OrderId} status to \"{OrderStatus\"",
+                orderId, status.ToString());
+
             try
             {
                 var order = await _orderRepository.SetOrderStatus(orderId, status);
+
+                _logger.LogInformation("Order with OrderId {OrderId} status is successfuly set to \"{OrderStatus\"",
+                    orderId, status.ToString());
 
                 return _mapper.Map<OrderModel>(order);
             }
             catch (InvalidOperationException e)
             {
+                _logger.LogInformation("Fail to set order with OrderId {OrderId} status to \"{OrderStatus\"",
+                    orderId, status.ToString());
+
                 return BadRequest(e.Message);
             }
         }
@@ -77,6 +94,9 @@ namespace DTShop.OrderService.Controllers
         {
             try
             {
+                _logger.LogInformation("{Username} has started adding {Amount} items with id {ItemId} to order with id {OrderId}",
+                    addItemModel.Username, addItemModel.Amount, addItemModel.ItemId, orderId);
+
                 var order = await _orderRepository.AddItemToOrder(
                     orderId,
                     addItemModel.ItemId,
@@ -89,15 +109,24 @@ namespace DTShop.OrderService.Controllers
 
                 if (orderId == 0)
                 {
+                    _logger.LogInformation("{Username} has successfuly added {Amount} items with id {ItemId} to a newly created order with id {OrderId}",
+                        addItemModel.Username, addItemModel.Amount, addItemModel.ItemId, order.OrderId);
+
                     return Created(location, _mapper.Map<OrderModel>(order));
                 }
                 else
                 {
+                    _logger.LogInformation("{Username} has successfuly added {Amount} items with id {ItemId} to an existing order with id {OrderId}",
+                        addItemModel.Username, addItemModel.Amount, addItemModel.ItemId, order.OrderId);
+
                     return _mapper.Map<OrderModel>(order);
                 }
             }
             catch (Exception e)
             {
+                _logger.LogInformation("{Username} has failed to add {Amount} items with id {ItemId} to an order with id {OrderId}",
+                    addItemModel.Username, addItemModel.Amount, addItemModel.ItemId, orderId);
+
                 return BadRequest(e.Message);
             }
         }
