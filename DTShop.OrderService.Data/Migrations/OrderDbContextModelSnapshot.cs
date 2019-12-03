@@ -22,11 +22,10 @@ namespace DTShop.OrderService.Data.Migrations
             modelBuilder.Entity("DTShop.OrderService.Data.Entities.Item", b =>
                 {
                     b.Property<int>("ItemId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
+                        .HasColumnType("int");
 
                     b.Property<string>("Name")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<decimal>("Price")
@@ -95,7 +94,7 @@ namespace DTShop.OrderService.Data.Migrations
                     b.Property<int>("Amount")
                         .HasColumnType("int");
 
-                    b.Property<int?>("ItemId")
+                    b.Property<int>("ItemId")
                         .HasColumnType("int");
 
                     b.Property<int?>("OrderId")
@@ -149,7 +148,9 @@ namespace DTShop.OrderService.Data.Migrations
                 {
                     b.HasOne("DTShop.OrderService.Data.Entities.Item", "Item")
                         .WithMany()
-                        .HasForeignKey("ItemId");
+                        .HasForeignKey("ItemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.HasOne("DTShop.OrderService.Data.Entities.Order", null)
                         .WithMany("OrderItems")

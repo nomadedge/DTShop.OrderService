@@ -10,8 +10,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DTShop.OrderService.Data.Migrations
 {
     [DbContext(typeof(OrderDbContext))]
-    [Migration("20191014090342_InitialMigration")]
-    partial class InitialMigration
+    [Migration("20191202133410_RemoveIdentity")]
+    partial class RemoveIdentity
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
@@ -24,9 +24,7 @@ namespace DTShop.OrderService.Data.Migrations
             modelBuilder.Entity("DTShop.OrderService.Data.Entities.Item", b =>
                 {
                     b.Property<int>("ItemId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
+                        .HasColumnType("int");
 
                     b.Property<string>("Name")
                         .HasColumnType("nvarchar(max)");
@@ -72,13 +70,13 @@ namespace DTShop.OrderService.Data.Migrations
                         .HasColumnType("int")
                         .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
 
-                    b.Property<int?>("PaymentId")
-                        .HasColumnType("int");
+                    b.Property<long?>("PaymentId")
+                        .HasColumnType("bigint");
 
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
-                    b.Property<string>("UserName")
+                    b.Property<string>("Username")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 

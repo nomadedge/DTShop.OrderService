@@ -3,6 +3,8 @@ using DTShop.OrderService.Core.Enums;
 using DTShop.OrderService.Core.Models;
 using DTShop.OrderService.Data.Entities;
 using DTShop.OrderService.Data.Repositories;
+using DTShop.OrderService.RabbitMQ;
+using DTShop.OrderService.RabbitMQ.Dtos;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
@@ -22,17 +24,20 @@ namespace DTShop.OrderService.Controllers
         private readonly IMapper _mapper;
         private readonly LinkGenerator _linkGenerator;
         private readonly ILogger<OrdersController> _logger;
+        private readonly IRabbitManager _rabbitManager;
 
         public OrdersController(
             IOrderRepository orderRepository,
             IMapper mapper,
             LinkGenerator linkGenerator,
-            ILogger<OrdersController> logger)
+            ILogger<OrdersController> logger,
+            IRabbitManager rabbitManager)
         {
             _orderRepository = orderRepository;
             _mapper = mapper;
             _linkGenerator = linkGenerator;
             _logger = logger;
+            _rabbitManager = rabbitManager;
         }
 
         [HttpGet]
@@ -50,13 +55,13 @@ namespace DTShop.OrderService.Controllers
         }
 
         [HttpGet("{orderId}")]
-        public ActionResult<OrderModel> GetOrderById(int orderId)
+        public async Task<ActionResult<OrderModel>> GetOrderById(int orderId)
         {
             _logger.LogInformation("Getting order with id {OrderId}", orderId);
 
             try
             {
-                var order = _orderRepository.GetOrderById(orderId);
+                var order = await _orderRepository.GetOrderByIdAsync(orderId);
                 return _mapper.Map<Order, OrderModel>(order);
             }
             catch (ArgumentException e)
@@ -68,21 +73,28 @@ namespace DTShop.OrderService.Controllers
         [HttpPut("{orderId}/status/{status}")]
         public async Task<ActionResult<OrderModel>> ChangeOrderStatus(int orderId, OrderStatus status)
         {
-            _logger.LogInformation("Start to setting order with OrderId {OrderId} status to \"{OrderStatus\"",
+            _logger.LogInformation("Start to setting order with OrderId {OrderId} status to \"{OrderStatus}\"",
                 orderId, status.ToString());
 
             try
             {
-                var order = await _orderRepository.SetOrderStatus(orderId, status);
+                var order = await _orderRepository.SetOrderStatusAsync(orderId, status);
 
-                _logger.LogInformation("Order with OrderId {OrderId} status is successfuly set to \"{OrderStatus\"",
+                _logger.LogInformation("Order with OrderId {OrderId} status is successfuly set to \"{OrderStatus}\"",
                     orderId, status.ToString());
+
+                var changeStatusDto = new ChangeStatusDto
+                {
+                    OrderId = order.OrderId,
+                    Status = order.Status.ToString()
+                };
+                _rabbitManager.Publish(changeStatusDto, "OrderStatus", "fanout", "OrderStatusChanged");
 
                 return _mapper.Map<OrderModel>(order);
             }
             catch (InvalidOperationException e)
             {
-                _logger.LogInformation("Fail to set order with OrderId {OrderId} status to \"{OrderStatus\"",
+                _logger.LogInformation("Fail to set order with OrderId {OrderId} status to \"{OrderStatus}\"",
                     orderId, status.ToString());
 
                 return BadRequest(e.Message);
@@ -97,7 +109,7 @@ namespace DTShop.OrderService.Controllers
                 _logger.LogInformation("{Username} has started adding {Amount} items with id {ItemId} to order with id {OrderId}",
                     addItemModel.Username, addItemModel.Amount, addItemModel.ItemId, orderId);
 
-                var order = await _orderRepository.AddItemToOrder(
+                var order = await _orderRepository.AddItemToOrderAsync(
                     orderId,
                     addItemModel.ItemId,
                     addItemModel.Amount,
@@ -106,6 +118,14 @@ namespace DTShop.OrderService.Controllers
                     "GetOrderById",
                     "Orders",
                     new { orderId = order.OrderId });
+
+                var reserveItemsDto = new ReserveItemsDto
+                {
+                    OrderId = order.OrderId,
+                    ItemId = addItemModel.ItemId,
+                    Amount = addItemModel.Amount
+                };
+                _rabbitManager.Publish(reserveItemsDto, "ItemsReservation", "direct", "ItemsReserved");
 
                 if (orderId == 0)
                 {

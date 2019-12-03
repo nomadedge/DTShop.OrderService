@@ -10,8 +10,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DTShop.OrderService.Data.Migrations
 {
     [DbContext(typeof(OrderDbContext))]
-    [Migration("20191018102010_FixUsername")]
-    partial class FixUsername
+    [Migration("20191202133942_FixRequired")]
+    partial class FixRequired
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
@@ -24,11 +24,10 @@ namespace DTShop.OrderService.Data.Migrations
             modelBuilder.Entity("DTShop.OrderService.Data.Entities.Item", b =>
                 {
                     b.Property<int>("ItemId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
+                        .HasColumnType("int");
 
                     b.Property<string>("Name")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<decimal>("Price")
@@ -72,8 +71,8 @@ namespace DTShop.OrderService.Data.Migrations
                         .HasColumnType("int")
                         .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
 
-                    b.Property<int?>("PaymentId")
-                        .HasColumnType("int");
+                    b.Property<long?>("PaymentId")
+                        .HasColumnType("bigint");
 
                     b.Property<int>("Status")
                         .HasColumnType("int");
@@ -97,7 +96,7 @@ namespace DTShop.OrderService.Data.Migrations
                     b.Property<int>("Amount")
                         .HasColumnType("int");
 
-                    b.Property<int?>("ItemId")
+                    b.Property<int>("ItemId")
                         .HasColumnType("int");
 
                     b.Property<int?>("OrderId")
@@ -151,7 +150,9 @@ namespace DTShop.OrderService.Data.Migrations
                 {
                     b.HasOne("DTShop.OrderService.Data.Entities.Item", "Item")
                         .WithMany()
-                        .HasForeignKey("ItemId");
+                        .HasForeignKey("ItemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.HasOne("DTShop.OrderService.Data.Entities.Order", null)
                         .WithMany("OrderItems")

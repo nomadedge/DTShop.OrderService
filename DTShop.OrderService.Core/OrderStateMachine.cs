@@ -9,8 +9,8 @@ namespace DTShop.OrderService.Core
         private static List<Tuple<OrderStatus, OrderStatus>> _transitions =
             new List<Tuple<OrderStatus, OrderStatus>>()
             {
-                new Tuple<OrderStatus, OrderStatus>(OrderStatus.Collecting, OrderStatus.Paid),
-                new Tuple<OrderStatus, OrderStatus>(OrderStatus.Collecting, OrderStatus.Failed),
+                //new Tuple<OrderStatus, OrderStatus>(OrderStatus.Collecting, OrderStatus.Paid),
+                //new Tuple<OrderStatus, OrderStatus>(OrderStatus.Collecting, OrderStatus.Failed),
                 new Tuple<OrderStatus, OrderStatus>(OrderStatus.Paid, OrderStatus.Shipping),
                 new Tuple<OrderStatus, OrderStatus>(OrderStatus.Paid, OrderStatus.Cancelled),
                 new Tuple<OrderStatus, OrderStatus>(OrderStatus.Shipping, OrderStatus.Complete)

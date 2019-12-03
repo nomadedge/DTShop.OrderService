@@ -26,12 +26,12 @@ namespace DTShop.OrderService.Data.Repositories
             return orders;
         }
 
-        public Order GetOrderById(int orderId)
+        public async Task<Order> GetOrderByIdAsync(int orderId)
         {
-            var order = _orderDbContext.Orders
+            var order = await _orderDbContext.Orders
                 .Include(o => o.OrderItems)
                     .ThenInclude(oi => oi.Item)
-                .FirstOrDefault(o => o.OrderId == orderId);
+                .FirstOrDefaultAsync(o => o.OrderId == orderId);
             if (order == null)
             {
                 throw new ArgumentException("No order with such id.");
@@ -39,7 +39,7 @@ namespace DTShop.OrderService.Data.Repositories
             return order;
         }
 
-        public async Task<Order> SetOrderStatus(int orderId, OrderStatus newOrderStatus)
+        public async Task<Order> SetOrderStatusAsync(int orderId, OrderStatus newOrderStatus)
         {
             var order = new Order();
 
@@ -47,7 +47,7 @@ namespace DTShop.OrderService.Data.Repositories
             {
                 try
                 {
-                    order = GetOrderById(orderId);
+                    order = await GetOrderByIdAsync(orderId);
 
                     if (!OrderStateMachine.IsTransitionAllowed(order.Status, newOrderStatus))
                     {
@@ -59,8 +59,8 @@ namespace DTShop.OrderService.Data.Repositories
                     {
                         foreach (var orderItem in order.OrderItems)
                         {
-                            var warehouseItem = _orderDbContext.WarehouseItems
-                                .FirstOrDefault(wi => wi.Item == orderItem.Item);
+                            var warehouseItem = await _orderDbContext.WarehouseItems
+                                .FirstOrDefaultAsync(wi => wi.Item == orderItem.Item);
                             warehouseItem.Amount += orderItem.Amount;
                         }
                     }
@@ -82,8 +82,13 @@ namespace DTShop.OrderService.Data.Repositories
             return order;
         }
 
-        public async Task<Order> AddItemToOrder(int orderId, int itemId, int amount, string username)
+        public async Task<Order> AddItemToOrderAsync(int orderId, int itemId, int amount, string username)
         {
+            if (string.IsNullOrWhiteSpace(username))
+            {
+                throw new ArgumentNullException("Username cannot be null.");
+            }
+
             var order = new Order();
 
             using (var transaction = _orderDbContext.Database.BeginTransaction())
@@ -95,9 +100,9 @@ namespace DTShop.OrderService.Data.Repositories
                         throw new ArgumentOutOfRangeException("Amount should be from 1 to 99");
                     }
 
-                    var warehouseItem = _orderDbContext.WarehouseItems
+                    var warehouseItem = await _orderDbContext.WarehouseItems
                         .Include(wi => wi.Item)
-                        .FirstOrDefault(wi => wi.Item.ItemId == itemId);
+                        .FirstOrDefaultAsync(wi => wi.Item.ItemId == itemId);
                     if (warehouseItem == null)
                     {
                         throw new ArgumentException("No warehouse item with such Id.");
@@ -119,17 +124,12 @@ namespace DTShop.OrderService.Data.Repositories
                         Amount = amount
                     } }
                         };
-                        _orderDbContext.Add(order);
+                        await _orderDbContext.AddAsync(order);
                         warehouseItem.Amount -= amount;
-
-                        if (!await SaveChangesAsync())
-                        {
-                            throw new DbUpdateException("Database failure");
-                        }
                     }
                     else
                     {
-                        order = GetOrderById(orderId);
+                        order = await GetOrderByIdAsync(orderId);
 
                         if (order.Status != OrderStatus.Collecting)
                         {
@@ -158,11 +158,11 @@ namespace DTShop.OrderService.Data.Repositories
                         }
 
                         warehouseItem.Amount -= amount;
+                    }
 
-                        if (!await SaveChangesAsync())
-                        {
-                            throw new DbUpdateException("Database failure");
-                        }
+                    if (!await SaveChangesAsync())
+                    {
+                        throw new DbUpdateException("Database failure");
                     }
 
                     transaction.Commit();
@@ -180,6 +180,62 @@ namespace DTShop.OrderService.Data.Repositories
         public async Task<bool> SaveChangesAsync()
         {
             return (await _orderDbContext.SaveChangesAsync()) > 0;
+        }
+
+        public async Task<Order> PayForOrderAsync(int orderId, long paymentId, string status)
+        {
+            var order = new Order();
+            using (var transaction = _orderDbContext.Database.BeginTransaction())
+            {
+                try
+                {
+                    order = await GetOrderByIdAsync(orderId);
+
+                    if (order.Status != OrderStatus.Collecting)
+                    {
+                        throw new ArgumentException("Order status should be \"Collecting\"");
+                    }
+
+                    order.PaymentId = paymentId;
+                    OrderStatus orderStatus;
+                    switch (status)
+                    {
+                        case "Paid":
+                            orderStatus = OrderStatus.Paid;
+                            break;
+                        case "Failed":
+                            orderStatus = OrderStatus.Failed;
+                            break;
+                        default:
+                            throw new ArgumentException("Status is not valid.");
+                    }
+                    order.Status = orderStatus;
+
+                    if (orderStatus == OrderStatus.Failed)
+                    {
+                        foreach (var orderItem in order.OrderItems)
+                        {
+                            var warehouseItem = await _orderDbContext.WarehouseItems
+                                .FirstOrDefaultAsync(wi => wi.Item == orderItem.Item);
+                            warehouseItem.Amount += orderItem.Amount;
+                        }
+                    }
+
+                    if (!await SaveChangesAsync())
+                    {
+                        throw new DbUpdateException("Database failure");
+                    }
+
+                    transaction.Commit();
+                }
+                catch (Exception e)
+                {
+                    transaction.Rollback();
+                    throw e;
+                }
+            }
+
+            return order;
         }
     }
 }

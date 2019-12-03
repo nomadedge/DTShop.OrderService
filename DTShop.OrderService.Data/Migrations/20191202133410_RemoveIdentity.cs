@@ -2,7 +2,7 @@
 
 namespace DTShop.OrderService.Data.Migrations
 {
-    public partial class InitialMigration : Migration
+    public partial class RemoveIdentity : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
@@ -10,10 +10,9 @@ namespace DTShop.OrderService.Data.Migrations
                 name: "Items",
                 columns: table => new
                 {
-                    ItemId = table.Column<int>(nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                    ItemId = table.Column<int>(nullable: false),
                     Name = table.Column<string>(nullable: true),
-                    Price = table.Column<decimal>(nullable: false)
+                    Price = table.Column<decimal>(type: "decimal(18,2)", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -26,8 +25,8 @@ namespace DTShop.OrderService.Data.Migrations
                 {
                     OrderId = table.Column<int>(nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    UserName = table.Column<string>(nullable: false),
-                    PaymentId = table.Column<int>(nullable: true),
+                    Username = table.Column<string>(nullable: false),
+                    PaymentId = table.Column<long>(nullable: true),
                     Status = table.Column<int>(nullable: false)
                 },
                 constraints: table =>

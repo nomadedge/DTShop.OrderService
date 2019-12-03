@@ -5,7 +5,7 @@ namespace DTShop.OrderService.Data.Entities
 {
     public class WarehouseItem
     {
-        [Key]
+        [Key, DatabaseGenerated(DatabaseGeneratedOption.None)]
         public int ItemId { get; set; }
         [ForeignKey("ItemId")]
         public Item Item { get; set; }
