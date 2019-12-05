@@ -21,18 +21,15 @@ namespace DTShop.OrderService.RabbitMQ.Consumers
         private IConnection _connection;
         private IModel _channel;
         private readonly IServiceScopeFactory _scopeFactory;
-        private readonly IRabbitManager _rabbitManager;
         private readonly IMapper _mapper;
         private readonly ILogger<GetOrderRequestConsumer> _logger;
 
         public GetOrderRequestConsumer(
             IServiceScopeFactory scopeFactory,
-            IRabbitManager rabbitManager,
             IMapper mapper,
             ILogger<GetOrderRequestConsumer> logger)
         {
             _scopeFactory = scopeFactory;
-            _rabbitManager = rabbitManager;
             _mapper = mapper;
             _logger = logger;
             InitRabbitMQ();
@@ -46,9 +43,9 @@ namespace DTShop.OrderService.RabbitMQ.Consumers
 
             _channel = _connection.CreateModel();
 
-            _channel.ExchangeDeclare("OrderRequest", ExchangeType.Direct, true, false, null);
-            _channel.QueueDeclare("OrderService_GetOrderRequest", true, false, false, null);
-            _channel.QueueBind("OrderService_GetOrderRequest", "OrderRequest", "GetOrderRequest", null);
+            _channel.ExchangeDeclare("PaymentService_OrderExchange", ExchangeType.Direct, true, false, null);
+            _channel.QueueDeclare("OrderService_GetOrderRequestQueue", true, false, false, null);
+            _channel.QueueBind("OrderService_GetOrderRequestQueue", "PaymentService_OrderExchange", "GetOrderRequest", null);
             _channel.BasicQos(0, 1, false);
 
             _connection.ConnectionShutdown += RabbitMQ_ConnectionShutdown;
@@ -61,9 +58,7 @@ namespace DTShop.OrderService.RabbitMQ.Consumers
             var consumer = new EventingBasicConsumer(_channel);
             consumer.Received += (ch, ea) =>
             {
-                var content = Encoding.UTF8.GetString(ea.Body);
-
-                HandleMessage(content);
+                HandleMessage(ea);
                 _channel.BasicAck(ea.DeliveryTag, false);
             };
 
@@ -72,33 +67,34 @@ namespace DTShop.OrderService.RabbitMQ.Consumers
             consumer.Unregistered += OnConsumerUnregistered;
             consumer.ConsumerCancelled += OnConsumerConsumerCancelled;
 
-            _channel.BasicConsume("OrderService_GetOrderRequest", false, consumer);
+            _channel.BasicConsume("OrderService_GetOrderRequestQueue", false, consumer);
             return Task.CompletedTask;
         }
 
-        private async void HandleMessage(string content)
+        private async void HandleMessage(BasicDeliverEventArgs ea)
         {
             using (var scope = _scopeFactory.CreateScope())
             {
                 try
                 {
+                    var content = Encoding.UTF8.GetString(ea.Body);
+                    var body = ea.Body;
+                    var props = ea.BasicProperties;
+                    var replyProps = _channel.CreateBasicProperties();
+                    replyProps.CorrelationId = props.CorrelationId;
+                    //replyProps.Persistent = true;
+
                     var orderRepository = scope.ServiceProvider.GetRequiredService<IOrderRepository>();
                     var orderRequestDto = JsonConvert.DeserializeObject<OrderRequestDto>(content);
-                    _logger.LogInformation("{Username} has started getting order with OrderId {OrderId}",
-                        orderRequestDto.Username, orderRequestDto.OrderId);
+                    _logger.LogInformation("Payment service has started getting order with OrderId {OrderId}",
+                        orderRequestDto.OrderId);
                     var order = await orderRepository.GetOrderByIdAsync(orderRequestDto.OrderId);
-                    if (order.Username != orderRequestDto.Username)
-                    {
-                        throw new ArgumentException("Usernames in order and user details should be equal.");
-                    }
-                    var orderResponseDto = new OrderResponseDto
-                    {
-                        Order = _mapper.Map<Order, OrderModel>(order),
-                        CardAuthorizationInfo = orderRequestDto.CardAuthorizationInfo
-                    };
-                    _rabbitManager.Publish(orderResponseDto, "OrderResponse", "direct", "GetOrderResponse");
-                    _logger.LogInformation("{Username} has successfuly gotten order with OrderId {OrderId}",
-                        orderRequestDto.Username, orderRequestDto.OrderId);
+
+                    var sendBytes = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(_mapper.Map<Order, OrderModel>(order)));
+                    _channel.BasicPublish("", props.ReplyTo, replyProps, sendBytes);
+
+                    _logger.LogInformation("Payment service has successfuly gotten order with OrderId {OrderId}",
+                        orderRequestDto.OrderId);
                 }
                 catch (Exception e)
                 {

@@ -40,9 +40,9 @@ namespace DTShop.OrderService.RabbitMQ.Consumers
 
             _channel = _connection.CreateModel();
 
-            _channel.ExchangeDeclare("OrderRequest", ExchangeType.Direct, true, false, null);
-            _channel.QueueDeclare("OrderService_PayForOrder", true, false, false, null);
-            _channel.QueueBind("OrderService_PayForOrder", "OrderRequest", "PayForOrder", null);
+            _channel.ExchangeDeclare("PaymentService_OrderExchange", ExchangeType.Direct, true, false, null);
+            _channel.QueueDeclare("OrderService_PayForOrderQueue", true, false, false, null);
+            _channel.QueueBind("OrderService_PayForOrderQueue", "PaymentService_OrderExchange", "PayForOrder", null);
             _channel.BasicQos(0, 1, false);
 
             _connection.ConnectionShutdown += RabbitMQ_ConnectionShutdown;
@@ -65,7 +65,7 @@ namespace DTShop.OrderService.RabbitMQ.Consumers
             consumer.Unregistered += OnConsumerUnregistered;
             consumer.ConsumerCancelled += OnConsumerConsumerCancelled;
 
-            _channel.BasicConsume("OrderService_PayForOrder", false, consumer);
+            _channel.BasicConsume("OrderService_PayForOrderQueue", false, consumer);
             return Task.CompletedTask;
         }
 
@@ -88,7 +88,7 @@ namespace DTShop.OrderService.RabbitMQ.Consumers
                         OrderId = order.OrderId,
                         Status = order.Status.ToString()
                     };
-                    _rabbitManager.Publish(changeStatusDto, "OrderStatus", "fanout", "OrderStatusChanged");
+                    _rabbitManager.Publish(changeStatusDto, "OrderService_ChangeOrderStatusExchange", "fanout", "OrderStatusChanged");
 
                     _logger.LogInformation("Status and payment info for order with OrderId {OrderId} has been successfuly updated.",
                         payForOrderDto.OrderId);

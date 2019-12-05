@@ -88,7 +88,7 @@ namespace DTShop.OrderService.Controllers
                     OrderId = order.OrderId,
                     Status = order.Status.ToString()
                 };
-                _rabbitManager.Publish(changeStatusDto, "OrderStatus", "fanout", "OrderStatusChanged");
+                _rabbitManager.Publish(changeStatusDto, "OrderService_ChangeOrderStatusExchange", "fanout", "ChangeOrderStatus");
 
                 return _mapper.Map<OrderModel>(order);
             }
@@ -125,7 +125,7 @@ namespace DTShop.OrderService.Controllers
                     ItemId = addItemModel.ItemId,
                     Amount = addItemModel.Amount
                 };
-                _rabbitManager.Publish(reserveItemsDto, "ItemsReservation", "direct", "ItemsReserved");
+                _rabbitManager.Publish(reserveItemsDto, "OrderService_ReserveItemsExchange", "direct", "ReserveItems");
 
                 if (orderId == 0)
                 {

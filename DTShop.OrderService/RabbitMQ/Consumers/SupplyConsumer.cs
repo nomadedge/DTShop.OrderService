@@ -37,9 +37,9 @@ namespace DTShop.OrderService.RabbitMQ.Consumers
 
             _channel = _connection.CreateModel();
 
-            _channel.ExchangeDeclare("ItemsSupply", ExchangeType.Direct, true, false, null);
-            _channel.QueueDeclare("OrderService_ItemsSupplied", true, false, false, null);
-            _channel.QueueBind("OrderService_ItemsSupplied", "ItemsSupply", "ItemsSupplied", null);
+            _channel.ExchangeDeclare("WarehouseService_SupplyItemsExchange", ExchangeType.Direct, true, false, null);
+            _channel.QueueDeclare("OrderService_SupplyItemsQueue", true, false, false, null);
+            _channel.QueueBind("OrderService_SupplyItemsQueue", "WarehouseService_SupplyItemsExchange", "SupplyItems", null);
             _channel.BasicQos(0, 1, false);
 
             _connection.ConnectionShutdown += RabbitMQ_ConnectionShutdown;
@@ -62,7 +62,7 @@ namespace DTShop.OrderService.RabbitMQ.Consumers
             consumer.Unregistered += OnConsumerUnregistered;
             consumer.ConsumerCancelled += OnConsumerConsumerCancelled;
 
-            _channel.BasicConsume("OrderService_ItemsSupplied", false, consumer);
+            _channel.BasicConsume("OrderService_SupplyItemsQueue", false, consumer);
             return Task.CompletedTask;
         }
 

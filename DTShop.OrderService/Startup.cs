@@ -31,10 +31,6 @@ namespace DTShop.OrderService
 
             services.AddRabbit(Configuration);
 
-            services.AddHostedService<SupplyConsumer>();
-            services.AddHostedService<GetOrderRequestConsumer>();
-            services.AddHostedService<PayForOrderConsumer>();
-
             services.AddAutoMapper(typeof(Startup));
 
             services.AddControllers();
