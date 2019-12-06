@@ -2,7 +2,7 @@
 using DTShop.OrderService.Core.Models;
 using DTShop.OrderService.Data.Entities;
 
-namespace DTShop.OrderService
+namespace DTShop.OrderService.AutoMapper
 {
     public class OrderProfile : Profile
     {
@@ -15,7 +15,9 @@ namespace DTShop.OrderService
             CreateMap<Order, OrderModel>()
                 .ForMember(om => om.TotalCost, opt => opt.Ignore())
                 .ForMember(om => om.TotalAmount, opt => opt.Ignore())
-                .ReverseMap();
+                .ForMember(om => om.Status, opt => opt.MapFrom<StatusToStringResolver>())
+                .ReverseMap()
+                .ForMember(om => om.Status, opt => opt.MapFrom<StringToStatusResolver>());
 
             CreateMap<OrderItem, OrderItemModel>()
                 .ReverseMap()

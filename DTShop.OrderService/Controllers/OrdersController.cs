@@ -86,7 +86,7 @@ namespace DTShop.OrderService.Controllers
                 var changeStatusDto = new ChangeStatusDto
                 {
                     OrderId = order.OrderId,
-                    Status = order.Status.ToString()
+                    Status = order.Status.Name
                 };
                 _rabbitManager.Publish(changeStatusDto, "OrderService_ChangeOrderStatusExchange", "fanout", "ChangeOrderStatus");
 

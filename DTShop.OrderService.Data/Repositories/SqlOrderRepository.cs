@@ -18,9 +18,16 @@ namespace DTShop.OrderService.Data.Repositories
             _orderDbContext = orderDbContext;
         }
 
+        private Status EnumToStatus(OrderStatus orderStatusEnum)
+        {
+            //return new Status { StatusId = orderStatusEnum, Name = orderStatusEnum.ToString() };
+            return _orderDbContext.Statuses.FirstOrDefault(os => os.StatusId == orderStatusEnum);
+        }
+
         public IEnumerable<Order> GetAllOrders()
         {
             var orders = _orderDbContext.Orders
+                .Include(o => o.Status)
                 .Include(o => o.OrderItems)
                     .ThenInclude(oi => oi.Item);
             return orders;
@@ -29,6 +36,7 @@ namespace DTShop.OrderService.Data.Repositories
         public async Task<Order> GetOrderByIdAsync(int orderId)
         {
             var order = await _orderDbContext.Orders
+                .Include(o => o.Status)
                 .Include(o => o.OrderItems)
                     .ThenInclude(oi => oi.Item)
                 .FirstOrDefaultAsync(o => o.OrderId == orderId);
@@ -49,12 +57,12 @@ namespace DTShop.OrderService.Data.Repositories
                 {
                     order = await GetOrderByIdAsync(orderId);
 
-                    if (!OrderStateMachine.IsTransitionAllowed(order.Status, newOrderStatus))
+                    if (!OrderStateMachine.IsTransitionAllowed(order.Status.StatusId, newOrderStatus))
                     {
                         throw new InvalidOperationException("Transition is not allowed by state machine.");
                     }
 
-                    order.Status = newOrderStatus;
+                    order.Status = EnumToStatus(newOrderStatus);
                     if (newOrderStatus == OrderStatus.Failed || newOrderStatus == OrderStatus.Cancelled)
                     {
                         foreach (var orderItem in order.OrderItems)
@@ -117,7 +125,7 @@ namespace DTShop.OrderService.Data.Repositories
                         order = new Order
                         {
                             Username = username,
-                            Status = OrderStatus.Collecting,
+                            Status = EnumToStatus(OrderStatus.Collecting),
                             OrderItems = new List<OrderItem> { new OrderItem
                     {
                         Item = warehouseItem.Item,
@@ -131,7 +139,7 @@ namespace DTShop.OrderService.Data.Repositories
                     {
                         order = await GetOrderByIdAsync(orderId);
 
-                        if (order.Status != OrderStatus.Collecting)
+                        if (order.Status.StatusId != OrderStatus.Collecting)
                         {
                             throw new ArgumentException("Order status should be \"Collecting\".");
                         }
@@ -191,7 +199,7 @@ namespace DTShop.OrderService.Data.Repositories
                 {
                     order = await GetOrderByIdAsync(orderId);
 
-                    if (order.Status != OrderStatus.Collecting)
+                    if (order.Status.StatusId != OrderStatus.Collecting)
                     {
                         throw new ArgumentException("Order status should be \"Collecting\"");
                     }
@@ -209,7 +217,7 @@ namespace DTShop.OrderService.Data.Repositories
                         default:
                             throw new ArgumentException("Status is not valid.");
                     }
-                    order.Status = orderStatus;
+                    order.Status = EnumToStatus(orderStatus);
 
                     if (orderStatus == OrderStatus.Failed)
                     {

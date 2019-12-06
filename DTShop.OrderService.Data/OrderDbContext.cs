@@ -1,5 +1,8 @@
-﻿using DTShop.OrderService.Data.Entities;
+﻿using DTShop.OrderService.Core.Enums;
+using DTShop.OrderService.Data.Entities;
 using Microsoft.EntityFrameworkCore;
+using System;
+using System.Collections.Generic;
 
 namespace DTShop.OrderService.Data
 {
@@ -12,62 +15,23 @@ namespace DTShop.OrderService.Data
         public DbSet<Order> Orders { get; set; }
         public DbSet<OrderItem> OrderItems { get; set; }
         public DbSet<WarehouseItem> WarehouseItems { get; set; }
+        public DbSet<Status> Statuses { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
 
-            var BI = new Item
+            var statuses = new List<Status>();
+            foreach (OrderStatus orderStatus in Enum.GetValues(typeof(OrderStatus)))
             {
-                ItemId = 1,
-                Name = "Bioshock Infinite",
-                Price = 10m
-            };
-
-            var SW = new Item
-            {
-                ItemId = 2,
-                Name = "Shadow Warrior",
-                Price = 3m
-            };
-
-            var ME = new Item
-            {
-                ItemId = 3,
-                Name = "Mass Effect",
-                Price = 6m
-            };
-
-            var WRoEF = new Item
-            {
-                ItemId = 4,
-                Name = "What Remains of Edith Finch",
-                Price = 5m
-            };
-
-            modelBuilder.Entity<Item>().HasData(BI, SW, ME, WRoEF);
-
-            modelBuilder.Entity<WarehouseItem>().HasData(
-                new
+                statuses.Add(new Status
                 {
-                    ItemId = 1,
-                    Amount = 10
-                },
-                new
-                {
-                    ItemId = 2,
-                    Amount = 10
-                },
-                new
-                {
-                    ItemId = 3,
-                    Amount = 10
-                },
-                new
-                {
-                    ItemId = 4,
-                    Amount = 10
+                    StatusId = orderStatus,
+                    Name = orderStatus.ToString()
                 });
+            }
+            
+            modelBuilder.Entity<Status>().HasData(statuses);
         }
     }
 }

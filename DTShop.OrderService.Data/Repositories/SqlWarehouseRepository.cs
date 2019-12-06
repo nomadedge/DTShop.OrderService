@@ -47,7 +47,10 @@ namespace DTShop.OrderService.Data.Repositories
                     }
                     else
                     {
-                        warehouseItem.Amount += amount;
+                        if (amount > warehouseItem.Amount)
+                        {
+                            warehouseItem.Amount = amount;
+                        }
                     }
                     if (!await SaveChangesAsync())
                     {

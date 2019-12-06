@@ -10,8 +10,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DTShop.OrderService.Data.Migrations
 {
     [DbContext(typeof(OrderDbContext))]
-    [Migration("20191202133942_FixRequired")]
-    partial class FixRequired
+    [Migration("20191206172322_InitialMigration")]
+    partial class InitialMigration
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
@@ -36,32 +36,6 @@ namespace DTShop.OrderService.Data.Migrations
                     b.HasKey("ItemId");
 
                     b.ToTable("Items");
-
-                    b.HasData(
-                        new
-                        {
-                            ItemId = 1,
-                            Name = "Bioshock Infinite",
-                            Price = 10m
-                        },
-                        new
-                        {
-                            ItemId = 2,
-                            Name = "Shadow Warrior",
-                            Price = 3m
-                        },
-                        new
-                        {
-                            ItemId = 3,
-                            Name = "Mass Effect",
-                            Price = 6m
-                        },
-                        new
-                        {
-                            ItemId = 4,
-                            Name = "What Remains of Edith Finch",
-                            Price = 5m
-                        });
                 });
 
             modelBuilder.Entity("DTShop.OrderService.Data.Entities.Order", b =>
@@ -74,7 +48,7 @@ namespace DTShop.OrderService.Data.Migrations
                     b.Property<long?>("PaymentId")
                         .HasColumnType("bigint");
 
-                    b.Property<int>("Status")
+                    b.Property<int>("StatusId")
                         .HasColumnType("int");
 
                     b.Property<string>("Username")
@@ -82,6 +56,8 @@ namespace DTShop.OrderService.Data.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("OrderId");
+
+                    b.HasIndex("StatusId");
 
                     b.ToTable("Orders");
                 });
@@ -111,6 +87,52 @@ namespace DTShop.OrderService.Data.Migrations
                     b.ToTable("OrderItems");
                 });
 
+            modelBuilder.Entity("DTShop.OrderService.Data.Entities.Status", b =>
+                {
+                    b.Property<int>("StatusId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("StatusId");
+
+                    b.ToTable("Statuses");
+
+                    b.HasData(
+                        new
+                        {
+                            StatusId = 0,
+                            Name = "Collecting"
+                        },
+                        new
+                        {
+                            StatusId = 1,
+                            Name = "Paid"
+                        },
+                        new
+                        {
+                            StatusId = 2,
+                            Name = "Failed"
+                        },
+                        new
+                        {
+                            StatusId = 3,
+                            Name = "Cancelled"
+                        },
+                        new
+                        {
+                            StatusId = 4,
+                            Name = "Shipping"
+                        },
+                        new
+                        {
+                            StatusId = 5,
+                            Name = "Complete"
+                        });
+                });
+
             modelBuilder.Entity("DTShop.OrderService.Data.Entities.WarehouseItem", b =>
                 {
                     b.Property<int>("ItemId")
@@ -122,28 +144,15 @@ namespace DTShop.OrderService.Data.Migrations
                     b.HasKey("ItemId");
 
                     b.ToTable("WarehouseItems");
+                });
 
-                    b.HasData(
-                        new
-                        {
-                            ItemId = 1,
-                            Amount = 10
-                        },
-                        new
-                        {
-                            ItemId = 2,
-                            Amount = 10
-                        },
-                        new
-                        {
-                            ItemId = 3,
-                            Amount = 10
-                        },
-                        new
-                        {
-                            ItemId = 4,
-                            Amount = 10
-                        });
+            modelBuilder.Entity("DTShop.OrderService.Data.Entities.Order", b =>
+                {
+                    b.HasOne("DTShop.OrderService.Data.Entities.Status", "Status")
+                        .WithMany()
+                        .HasForeignKey("StatusId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("DTShop.OrderService.Data.Entities.OrderItem", b =>

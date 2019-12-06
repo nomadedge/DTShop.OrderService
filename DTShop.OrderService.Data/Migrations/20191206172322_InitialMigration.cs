@@ -2,7 +2,7 @@
 
 namespace DTShop.OrderService.Data.Migrations
 {
-    public partial class RemoveIdentity : Migration
+    public partial class InitialMigration : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
@@ -11,7 +11,7 @@ namespace DTShop.OrderService.Data.Migrations
                 columns: table => new
                 {
                     ItemId = table.Column<int>(nullable: false),
-                    Name = table.Column<string>(nullable: true),
+                    Name = table.Column<string>(nullable: false),
                     Price = table.Column<decimal>(type: "decimal(18,2)", nullable: false)
                 },
                 constraints: table =>
@@ -20,18 +20,15 @@ namespace DTShop.OrderService.Data.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "Orders",
+                name: "Statuses",
                 columns: table => new
                 {
-                    OrderId = table.Column<int>(nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Username = table.Column<string>(nullable: false),
-                    PaymentId = table.Column<long>(nullable: true),
-                    Status = table.Column<int>(nullable: false)
+                    StatusId = table.Column<int>(nullable: false),
+                    Name = table.Column<string>(nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Orders", x => x.OrderId);
+                    table.PrimaryKey("PK_Statuses", x => x.StatusId);
                 });
 
             migrationBuilder.CreateTable(
@@ -53,12 +50,33 @@ namespace DTShop.OrderService.Data.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "Orders",
+                columns: table => new
+                {
+                    OrderId = table.Column<int>(nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Username = table.Column<string>(nullable: false),
+                    PaymentId = table.Column<long>(nullable: true),
+                    StatusId = table.Column<int>(nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Orders", x => x.OrderId);
+                    table.ForeignKey(
+                        name: "FK_Orders_Statuses_StatusId",
+                        column: x => x.StatusId,
+                        principalTable: "Statuses",
+                        principalColumn: "StatusId",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "OrderItems",
                 columns: table => new
                 {
                     OrderItemId = table.Column<int>(nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    ItemId = table.Column<int>(nullable: true),
+                    ItemId = table.Column<int>(nullable: false),
                     Amount = table.Column<int>(nullable: false),
                     OrderId = table.Column<int>(nullable: true)
                 },
@@ -70,7 +88,7 @@ namespace DTShop.OrderService.Data.Migrations
                         column: x => x.ItemId,
                         principalTable: "Items",
                         principalColumn: "ItemId",
-                        onDelete: ReferentialAction.Restrict);
+                        onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
                         name: "FK_OrderItems_Orders_OrderId",
                         column: x => x.OrderId,
@@ -80,25 +98,16 @@ namespace DTShop.OrderService.Data.Migrations
                 });
 
             migrationBuilder.InsertData(
-                table: "Items",
-                columns: new[] { "ItemId", "Name", "Price" },
+                table: "Statuses",
+                columns: new[] { "StatusId", "Name" },
                 values: new object[,]
                 {
-                    { 1, "Bioshock Infinite", 10m },
-                    { 2, "Shadow Warrior", 3m },
-                    { 3, "Mass Effect", 6m },
-                    { 4, "What Remains of Edith Finch", 5m }
-                });
-
-            migrationBuilder.InsertData(
-                table: "WarehouseItems",
-                columns: new[] { "ItemId", "Amount" },
-                values: new object[,]
-                {
-                    { 1, 10 },
-                    { 2, 10 },
-                    { 3, 10 },
-                    { 4, 10 }
+                    { 0, "Collecting" },
+                    { 1, "Paid" },
+                    { 2, "Failed" },
+                    { 3, "Cancelled" },
+                    { 4, "Shipping" },
+                    { 5, "Complete" }
                 });
 
             migrationBuilder.CreateIndex(
@@ -110,6 +119,11 @@ namespace DTShop.OrderService.Data.Migrations
                 name: "IX_OrderItems_OrderId",
                 table: "OrderItems",
                 column: "OrderId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Orders_StatusId",
+                table: "Orders",
+                column: "StatusId");
         }
 
         protected override void Down(MigrationBuilder migrationBuilder)
@@ -125,6 +139,9 @@ namespace DTShop.OrderService.Data.Migrations
 
             migrationBuilder.DropTable(
                 name: "Items");
+
+            migrationBuilder.DropTable(
+                name: "Statuses");
         }
     }
 }
