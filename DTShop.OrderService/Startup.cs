@@ -2,7 +2,6 @@ using AutoMapper;
 using DTShop.OrderService.Data;
 using DTShop.OrderService.Data.Repositories;
 using DTShop.OrderService.RabbitMQ;
-using DTShop.OrderService.RabbitMQ.Consumers;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
