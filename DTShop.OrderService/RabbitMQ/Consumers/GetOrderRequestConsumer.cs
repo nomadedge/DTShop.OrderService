@@ -10,6 +10,7 @@ using Newtonsoft.Json;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System;
+using System.Collections.Generic;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -88,7 +89,15 @@ namespace DTShop.OrderService.RabbitMQ.Consumers
                     var orderRequestDto = JsonConvert.DeserializeObject<OrderRequestDto>(content);
                     _logger.LogInformation("Payment service has started getting order with OrderId {OrderId}",
                         orderRequestDto.OrderId);
-                    var order = await orderRepository.GetOrderByIdAsync(orderRequestDto.OrderId);
+                    var order = new Order();
+                    try
+                    {
+                        order = await orderRepository.GetOrderByIdAsync(orderRequestDto.OrderId);
+                    }
+                    catch (Exception)
+                    {
+                        order = new Order { OrderId = 0, OrderItems = new List<OrderItem>(), PaymentId = null, Status = new Status { StatusId = 0, Name = "Collecting" }, Username = null };
+                    }
 
                     var sendBytes = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(_mapper.Map<Order, OrderModel>(order)));
                     _channel.BasicPublish("", props.ReplyTo, replyProps, sendBytes);

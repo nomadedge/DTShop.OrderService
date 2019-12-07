@@ -30,7 +30,7 @@ namespace DTShop.OrderService.Data
                     Name = orderStatus.ToString()
                 });
             }
-            
+
             modelBuilder.Entity<Status>().HasData(statuses);
         }
     }
