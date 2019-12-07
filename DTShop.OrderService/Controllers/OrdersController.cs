@@ -83,11 +83,7 @@ namespace DTShop.OrderService.Controllers
                 _logger.LogInformation("Order with OrderId {OrderId} status is successfuly set to \"{OrderStatus}\"",
                     orderId, status.ToString());
 
-                var changeStatusDto = new ChangeStatusDto
-                {
-                    OrderId = order.OrderId,
-                    Status = order.Status.Name
-                };
+                var changeStatusDto = _mapper.Map<ChangeStatusDto>(order);
                 _rabbitManager.Publish(changeStatusDto, "OrderService_ChangeOrderStatusExchange", "fanout", "ChangeOrderStatus");
 
                 return _mapper.Map<OrderModel>(order);
@@ -119,12 +115,7 @@ namespace DTShop.OrderService.Controllers
                     "Orders",
                     new { orderId = order.OrderId });
 
-                var reserveItemsDto = new ReserveItemsDto
-                {
-                    OrderId = order.OrderId,
-                    ItemId = addItemModel.ItemId,
-                    Amount = addItemModel.Amount
-                };
+                var reserveItemsDto = new ReserveItemsDto(order, addItemModel);
                 _rabbitManager.Publish(reserveItemsDto, "OrderService_ReserveItemsExchange", "direct", "ReserveItems");
 
                 if (orderId == 0)

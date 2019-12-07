@@ -4,7 +4,7 @@ using DTShop.OrderService.Data.Entities;
 
 namespace DTShop.OrderService.AutoMapper
 {
-    public class StatusToStringResolver : IValueResolver<Order, OrderModel, string>
+    public class OrderToOrderModelStatus : IValueResolver<Order, OrderModel, string>
     {
         public string Resolve(Order source, OrderModel destination, string destMember, ResolutionContext context)
         {

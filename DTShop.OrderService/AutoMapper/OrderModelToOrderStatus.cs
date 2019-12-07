@@ -6,7 +6,7 @@ using System;
 
 namespace DTShop.OrderService.AutoMapper
 {
-    public class StringToStatusResolver : IValueResolver<OrderModel, Order, Status>
+    public class OrderModelToOrderStatus : IValueResolver<OrderModel, Order, Status>
     {
         public Status Resolve(OrderModel source, Order destination, Status destMember, ResolutionContext context)
         {

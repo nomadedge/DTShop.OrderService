@@ -1,4 +1,5 @@
-﻿using DTShop.OrderService.Data.Repositories;
+﻿using AutoMapper;
+using DTShop.OrderService.Data.Repositories;
 using DTShop.OrderService.RabbitMQ.Dtos;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -20,15 +21,18 @@ namespace DTShop.OrderService.RabbitMQ.Consumers
         private readonly IServiceScopeFactory _scopeFactory;
         private readonly ILogger<PayForOrderConsumer> _logger;
         private readonly IRabbitManager _rabbitManager;
+        private readonly IMapper _mapper;
 
         public PayForOrderConsumer(
             IServiceScopeFactory scopeFactory,
             ILogger<PayForOrderConsumer> logger,
-            IRabbitManager rabbitManager)
+            IRabbitManager rabbitManager,
+            IMapper mapper)
         {
             _scopeFactory = scopeFactory;
             _logger = logger;
             _rabbitManager = rabbitManager;
+            _mapper = mapper;
             InitRabbitMQ();
         }
 
@@ -83,11 +87,7 @@ namespace DTShop.OrderService.RabbitMQ.Consumers
                         payForOrderDto.OrderId,
                         payForOrderDto.PaymentId,
                         payForOrderDto.Status);
-                    var changeStatusDto = new ChangeStatusDto
-                    {
-                        OrderId = order.OrderId,
-                        Status = order.Status.Name
-                    };
+                    var changeStatusDto = _mapper.Map<ChangeStatusDto>(order);
                     _rabbitManager.Publish(changeStatusDto, "OrderService_ChangeOrderStatusExchange", "fanout", "OrderStatusChanged");
 
                     _logger.LogInformation("Status and payment info for order with OrderId {OrderId} has been successfuly updated.",
