@@ -33,6 +33,10 @@ namespace DTShop.OrderService.Data.Repositories
                         {
                             throw new ArgumentException("Provide name and price for new item.");
                         }
+                        if (price < 0)
+                        {
+                            throw new ArgumentException("Price should be positive number.");
+                        }
                         _orderDbContext.Add(new Item
                         {
                             ItemId = itemId,
