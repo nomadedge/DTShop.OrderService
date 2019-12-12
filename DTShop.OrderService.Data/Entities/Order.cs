@@ -6,6 +6,11 @@ namespace DTShop.OrderService.Data.Entities
 {
     public class Order
     {
+        public Order()
+        {
+            OrderItems = new HashSet<OrderItem>();
+        }
+
         public int OrderId { get; set; }
         [Required]
         public string Username { get; set; }
