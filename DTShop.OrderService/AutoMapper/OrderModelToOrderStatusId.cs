@@ -6,12 +6,12 @@ using System;
 
 namespace DTShop.OrderService.AutoMapper
 {
-    public class OrderModelToOrderStatus : IValueResolver<OrderModel, Order, Status>
+    public class OrderModelToOrderStatusId : IValueResolver<OrderModel, Order, OrderStatus>
     {
-        public Status Resolve(OrderModel source, Order destination, Status destMember, ResolutionContext context)
+        public OrderStatus Resolve(OrderModel source, Order destination, OrderStatus destMember, ResolutionContext context)
         {
             Enum.TryParse(source.Status, out OrderStatus orderStatusEnum);
-            return new Status { StatusId = orderStatusEnum, Name = orderStatusEnum.ToString() };
+            return orderStatusEnum;
         }
     }
 }

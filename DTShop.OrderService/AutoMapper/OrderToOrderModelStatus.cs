@@ -8,7 +8,11 @@ namespace DTShop.OrderService.AutoMapper
     {
         public string Resolve(Order source, OrderModel destination, string destMember, ResolutionContext context)
         {
-            return source.Status.Name;
+            if (source.Status != null)
+            {
+                return source.Status.Name;
+            }
+            return source.StatusId.ToString();
         }
     }
 }

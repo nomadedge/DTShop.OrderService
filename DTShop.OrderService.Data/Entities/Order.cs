@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using DTShop.OrderService.Core.Enums;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 
 namespace DTShop.OrderService.Data.Entities
@@ -9,7 +10,7 @@ namespace DTShop.OrderService.Data.Entities
         [Required]
         public string Username { get; set; }
         public long? PaymentId { get; set; }
-        [Required]
+        public OrderStatus StatusId { get; set; }
         public Status Status { get; set; }
         public ICollection<OrderItem> OrderItems { get; set; }
     }

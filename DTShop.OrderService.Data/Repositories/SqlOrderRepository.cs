@@ -18,12 +18,6 @@ namespace DTShop.OrderService.Data.Repositories
             _orderDbContext = orderDbContext;
         }
 
-        private Status EnumToStatus(OrderStatus orderStatusEnum)
-        {
-            //return new Status { StatusId = orderStatusEnum, Name = orderStatusEnum.ToString() };
-            return _orderDbContext.Statuses.FirstOrDefault(os => os.StatusId == orderStatusEnum);
-        }
-
         public IEnumerable<Order> GetAllOrders()
         {
             var orders = _orderDbContext.Orders
@@ -62,7 +56,7 @@ namespace DTShop.OrderService.Data.Repositories
                         throw new InvalidOperationException("Transition is not allowed by state machine.");
                     }
 
-                    order.Status = EnumToStatus(newOrderStatus);
+                    order.StatusId = newOrderStatus;
                     if (newOrderStatus == OrderStatus.Failed || newOrderStatus == OrderStatus.Cancelled)
                     {
                         foreach (var orderItem in order.OrderItems)
@@ -125,7 +119,7 @@ namespace DTShop.OrderService.Data.Repositories
                         order = new Order
                         {
                             Username = username,
-                            Status = EnumToStatus(OrderStatus.Collecting),
+                            StatusId = OrderStatus.Collecting,
                             OrderItems = new List<OrderItem> { new OrderItem
                     {
                         Item = warehouseItem.Item,
@@ -217,7 +211,7 @@ namespace DTShop.OrderService.Data.Repositories
                         default:
                             throw new ArgumentException("Status is not valid.");
                     }
-                    order.Status = EnumToStatus(orderStatus);
+                    order.StatusId = orderStatus;
 
                     if (orderStatus == OrderStatus.Failed)
                     {

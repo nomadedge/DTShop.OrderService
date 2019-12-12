@@ -18,7 +18,8 @@ namespace DTShop.OrderService.AutoMapper
                 .ForMember(om => om.TotalAmount, opt => opt.Ignore())
                 .ForMember(om => om.Status, opt => opt.MapFrom<OrderToOrderModelStatus>())
                 .ReverseMap()
-                .ForMember(o => o.Status, opt => opt.MapFrom<OrderModelToOrderStatus>());
+                .ForMember(o => o.Status, opt => opt.Ignore())
+                .ForMember(o => o.StatusId, opt => opt.MapFrom<OrderModelToOrderStatusId>());
 
             CreateMap<OrderItem, OrderItemModel>()
                 .ReverseMap()
