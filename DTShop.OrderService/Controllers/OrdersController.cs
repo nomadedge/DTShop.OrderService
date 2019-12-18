@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Logging;
+using RabbitMQ.Client;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -84,7 +85,7 @@ namespace DTShop.OrderService.Controllers
                     orderId, status.ToString());
 
                 var changeStatusDto = _mapper.Map<ChangeStatusDto>(order);
-                _rabbitManager.Publish(changeStatusDto, "OrderService_ChangeOrderStatusExchange", "fanout", "ChangeOrderStatus");
+                _rabbitManager.Publish(changeStatusDto, "OrderService_ChangeOrderStatusExchange", ExchangeType.Fanout, "ChangeOrderStatus");
 
                 return _mapper.Map<OrderModel>(order);
             }
@@ -116,7 +117,7 @@ namespace DTShop.OrderService.Controllers
                     new { orderId = order.OrderId });
 
                 var reserveItemsDto = new ReserveItemsDto(order, addItemModel);
-                _rabbitManager.Publish(reserveItemsDto, "OrderService_ReserveItemsExchange", "direct", "ReserveItems");
+                _rabbitManager.Publish(reserveItemsDto, "OrderService_ReserveItemsExchange", ExchangeType.Direct, "ReserveItems");
 
                 if (orderId == 0)
                 {

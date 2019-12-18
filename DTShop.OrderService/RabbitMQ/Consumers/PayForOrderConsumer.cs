@@ -88,7 +88,7 @@ namespace DTShop.OrderService.RabbitMQ.Consumers
                         payForOrderDto.PaymentId,
                         payForOrderDto.Status);
                     var changeStatusDto = _mapper.Map<ChangeStatusDto>(order);
-                    _rabbitManager.Publish(changeStatusDto, "OrderService_ChangeOrderStatusExchange", "fanout", "OrderStatusChanged");
+                    _rabbitManager.Publish(changeStatusDto, "OrderService_ChangeOrderStatusExchange", ExchangeType.Fanout, "OrderStatusChanged");
 
                     _logger.LogInformation("Status and payment info for order with OrderId {OrderId} has been successfuly updated.",
                         payForOrderDto.OrderId);

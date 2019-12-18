@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Steeltoe.Discovery.Client;
 
 namespace DTShop.OrderService
 {
@@ -22,6 +23,8 @@ namespace DTShop.OrderService
 
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddDiscoveryClient(Configuration);
+
             services.AddDbContext<OrderDbContext>(options =>
                 options.UseSqlServer(Configuration.GetConnectionString("DefaultConnection")));
 
@@ -50,6 +53,8 @@ namespace DTShop.OrderService
             {
                 endpoints.MapControllers();
             });
+
+            app.UseDiscoveryClient();
         }
     }
 }
