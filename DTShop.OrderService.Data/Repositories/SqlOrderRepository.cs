@@ -41,6 +41,16 @@ namespace DTShop.OrderService.Data.Repositories
             return order;
         }
 
+        public IEnumerable<Order> GetOrdersByUsername(string username)
+        {
+            var orders = _orderDbContext.Orders
+                .Where(o => o.Username == username)
+                .Include(o => o.Status)
+                .Include(o => o.OrderItems)
+                    .ThenInclude(oi => oi.Item);
+            return orders;
+        }
+
         public async Task<Order> SetOrderStatusAsync(int orderId, OrderStatus newOrderStatus)
         {
             var order = new Order();

@@ -142,5 +142,26 @@ namespace DTShop.OrderService.Controllers
                 return BadRequest(e.Message);
             }
         }
+
+        [HttpGet("filter/{username}")]
+        public ActionResult<List<OrderModel>> GetOrdersByUsername(string username)
+        {
+            try
+            {
+                _logger.LogInformation("Getting orders by username");
+
+                var orders = _orderRepository.GetOrdersByUsername(username).ToList();
+
+                if (orders.Any())
+                {
+                    return _mapper.Map<List<OrderModel>>(orders);
+                }
+                return NoContent();
+            }
+            catch (Exception e)
+            {
+                return BadRequest(e.Message);
+            }
+        }
     }
 }

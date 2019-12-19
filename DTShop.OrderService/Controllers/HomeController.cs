@@ -11,17 +11,5 @@ namespace DTShop.OrderService.Controllers
         {
             return Ok("Order Service for DTShop application.");
         }
-
-        [HttpGet("Status")]
-        public ActionResult GetStatus()
-        {
-            return Ok(1);
-        }
-
-        [HttpGet("healthcheck")]
-        public ActionResult CheckHealth()
-        {
-            return Ok("Order Service is running normally.");
-        }
     }
 }

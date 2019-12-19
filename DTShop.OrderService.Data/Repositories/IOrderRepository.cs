@@ -10,6 +10,7 @@ namespace DTShop.OrderService.Data.Repositories
         Task<Order> AddItemToOrderAsync(int orderId, int warehouseItemId, int amount, string username);
         IEnumerable<Order> GetAllOrders();
         Task<Order> GetOrderByIdAsync(int orderId);
+        IEnumerable<Order> GetOrdersByUsername(string username);
         Task<Order> SetOrderStatusAsync(int orderId, OrderStatus newOrderStatus);
         Task<bool> SaveChangesAsync();
         Task<Order> PayForOrderAsync(int orderId, long paymentId, string status);
