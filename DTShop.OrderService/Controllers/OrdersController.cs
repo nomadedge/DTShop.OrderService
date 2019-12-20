@@ -152,11 +152,7 @@ namespace DTShop.OrderService.Controllers
 
                 var orders = _orderRepository.GetOrdersByUsername(username).ToList();
 
-                if (orders.Any())
-                {
-                    return _mapper.Map<List<OrderModel>>(orders);
-                }
-                return NoContent();
+                return _mapper.Map<List<OrderModel>>(orders);
             }
             catch (Exception e)
             {
